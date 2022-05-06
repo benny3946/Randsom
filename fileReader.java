@@ -4,6 +4,8 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -19,16 +21,19 @@ public class fileReader {
 		
 		c = new chiper();
 		//rsaKeysGen();
-		c.aesKeyGen();
+			
+		HashSet<String> types = new HashSet<>(Arrays.asList("txt", "docx", "pdf"));
 		
-
+		ArrayList<byte[]> filehashes = new ArrayList<>();
+		
+		File dir;
 		try {
 			
-			File dir = new File(System.getProperty("user.dir"));
+			dir = new File(System.getProperty("user.dir"));
 			DataInputStream reader;
 			DataOutputStream writer;
+			MessageDigest hash = MessageDigest.getInstance("SHA-256");
 			File[] files = dir.listFiles();
-			HashSet<String> types = new HashSet<>(Arrays.asList("txt"));
 			for(File f : files) {
 				if(f.isFile()) {
 					String fileName = f.getName();
@@ -37,18 +42,17 @@ public class fileReader {
 					if(types.contains(ext)) {
 						reader = new DataInputStream(new FileInputStream(f));
 						int size = reader.available();
-						System.out.print(size);
 						byte[] data = new byte[size];
 						reader.read(data);
+						c.aesKeyGen();
 						byte[] edata = c.encrypt(data);
 						
-						System.out.println(c.encode(Arrays.copyOf(data, 200)));
-						System.out.println();
-						System.out.println(c.encode(Arrays.copyOf(edata, 200)));
+						filehashes.add(hash.digest(data));
 						reader.close();
 						
 						writer = new DataOutputStream( new FileOutputStream("e" + fileName));
-						
+						writer.write(c.getencrpytAESKey());
+						writer.write(c.getIV());
 						writer.write(edata);
 						writer.flush();
 						writer.close();
@@ -63,11 +67,11 @@ public class fileReader {
 		
 		try {
 			
-			File dir = new File(System.getProperty("user.dir"));
+			dir = new File(System.getProperty("user.dir"));
 			DataInputStream reader;
 			DataOutputStream writer;
 			File[] files = dir.listFiles();
-			HashSet<String> types = new HashSet<>(Arrays.asList("txt"));
+			MessageDigest hash = MessageDigest.getInstance("SHA-256");
 			for(File f : files) {
 				if(f.isFile()) {
 					String fileName = f.getName();
@@ -76,14 +80,18 @@ public class fileReader {
 					if(fileName.charAt(0) == 'e' && types.contains(ext)) {
 						reader = new DataInputStream(new FileInputStream(f));
 						int size = reader.available();
-						System.out.print(size);
-						byte[] data = new byte[size];
-						reader.read(data);
+						byte[] aeskey = new byte[128];
+						byte[] IV = new byte[16];
+						byte[] data = new byte[size - 144];
+						
+						reader.read(aeskey, 0, 128);
+						reader.read(IV, 0, 16);
+						reader.read(data, 0, size - 144);
+						c.setIV(IV);
+						c.decrpytAESKey(aeskey);
 						byte[] edata = c.decrypt(data);
 						
-						System.out.println(c.encode(Arrays.copyOf(data, 200)));
-						System.out.println();
-						System.out.println(c.encode(Arrays.copyOf(edata, 200)));
+						filehashes.add(hash.digest(edata));
 						reader.close();
 						
 						writer = new DataOutputStream( new FileOutputStream( "u" + fileName.substring(1)));
@@ -96,6 +104,11 @@ public class fileReader {
 				}
 			}
 		}catch(Exception ex) {}
+		
+		int size = filehashes.size() /2 ;
+		for(int i = 0; i < size; i++) {
+			System.out.println( Arrays.equals(filehashes.get(i), filehashes.get(i + size) ) );
+		}
 		
 	}
 }
